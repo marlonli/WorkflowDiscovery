@@ -6,7 +6,7 @@ An algorithm for discovering interpretable medical workflow models from an align
 - [graphviz](https://pypi.org/project/graphviz/)
 ## Example usage
 A sample input CSV file is given in the reporsitory.
-```Python
+```python
 import workflowModel as workflow
 threshold = 0.5
 span = "max"
