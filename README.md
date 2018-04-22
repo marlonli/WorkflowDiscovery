@@ -10,6 +10,7 @@ A sample input CSV file is given in the reporsitory.
 import workflowModel as workflow
 threshold = 0.5
 span = "max"
+#span = 5
 workflow.model("Synthetic_activityTraces_1000.csv", threshold, span)
 ```
 We use [Process-oriented Iterative Multiple Alignment(PIMA)](https://arxiv.org/pdf/1709.05440.pdf) algorithm to perform trace alignment.
