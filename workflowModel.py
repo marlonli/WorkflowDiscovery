@@ -8,17 +8,6 @@ import graphviz as gv
 np.set_printoptions(threshold=np.nan)
 # csv to log, returns list of traces and dictionaries
 def csv2log(filename, caseids_col, acts_col, starts_col, isplg=False):
-    """ 
-    @param:
-        filename (str): csv filename
-        caseids_col (str): Column title of case ids
-        acts_col (str): Column title of activities
-        starts_col (str): Column title of start time
-    @returns:
-        traces (2d array): process traces
-        case_dict: (dict): case id dictionary
-        act_dict: (dict): activity dictionary 
-    """
     df = pd.read_csv(filename)
     if isplg:
         for id in df[caseids_col]:
@@ -45,25 +34,12 @@ def csv2log(filename, caseids_col, acts_col, starts_col, isplg=False):
     # return
     return traces, case_dict, act_dict
 
+# load alignment matrix
 def load_amat(folname, filename):
-    """ load alignment matrix
-    @param:
-        folname (str): folder name
-        filename (str): filename (.out)
-    @returns:
-        amat (2d array): alignment matrix
-    """
     return np.loadtxt(folname+'/'+filename+'.out')
 
+# get consensus sequence
 def get_consensus(acts, freq, p):
-    """ get consensus sequence
-    @param:
-        acts (array): activity id array
-        freq (array): frequency array
-        p (float): threshold
-    @returns:
-        cons (array): consensus activity id (0 is non-consensus)
-    """
     traces=acts.copy()
     freqs=freq.copy()
     freqs[freqs < p] = 0
@@ -72,19 +48,8 @@ def get_consensus(acts, freq, p):
             traces[i] = 0
     return traces
 
+# get consensus activities
 def get_cons_acts(cons, act_dict, freq):
-    """ get consensus activity information
-    @param:
-        cons (array): consensus activity id
-        act_dict (dict): activity dictionary {id: name}
-        freq (array): frequency of each column
-    @returns:
-        cons_cols (array): consensus column number 
-        cons_acts (array): consensus activity array
-        cons_acts_num (array): consensus activity id array
-        cons_acts_dict (dict): the count of consensus activity {column index: count}
-        cons_col_freqs_dict (dict): {column index: frequency} 
-    """
     cons_acts_dict = {}
     cons_cols = []
     cons_acts = []
@@ -103,27 +68,15 @@ def get_cons_acts(cons, act_dict, freq):
                 cons_acts.append(act_dict[cons[index]])
     return cons_cols, cons_acts, cons_acts_num, cons_acts_dict, cons_col_freqs_dict
 
+# find the preceding consensus column
 def find_last_cons_col(cons_cols, i):
-    """ find the previous consensus column
-    @param:
-        cons_cols (array): consensus column index
-        i (int): current index
-    @returns:
-        col (int): the column index of the previous consensus activity 
-    """
     for idx in range(len(cons_cols) - 1):
         if cons_cols[idx + 1] > i:
             return cons_cols[idx]
     return 0
 
+# find the succeeding consensus column
 def find_next_cons_col(cons_cols, last_col, span):
-    """ find the previous consensus column
-    @param:
-        cons_cols (array): consensus column index
-        span (int): range of 
-    @returns:
-        col (int): the column index of the next consensus activity 
-    """
     for idx in range(len(cons_cols)):
         if cons_cols[idx] == last_col:
             if idx + span <= len(cons_cols):
@@ -132,6 +85,7 @@ def find_next_cons_col(cons_cols, last_col, span):
                 return cons_cols[len(cons_cols) - 1]
     return 0
 
+# get the "backbone" edges (returns activity id)
 def get_cons_edges(cons_acts):
     cs_edges = []
     for i in range(len(cons_acts) - 1):
@@ -140,6 +94,7 @@ def get_cons_edges(cons_acts):
         cs_edges.append([first, last])
     return cs_edges
 
+# get the "backbone" edges (returns the column index)
 def get_cons_edges_col(cons_cols):
     cs_edges_col = []
     for i in range(len(cons_cols) - 1):
@@ -148,43 +103,7 @@ def get_cons_edges_col(cons_cols):
         cs_edges_col.append([first, last])
     return cs_edges_col
 
-def cols_to_acts(acts, act_dict, cs_edges_col, dis_edges_col):
-    cols_acts_dict = {}
-    acts_count_dict = {}
-    cs_edges = []
-    acts_count_dict[acts[cs_edges_col[0][0]]] = 1
-    cols_acts_dict = {cs_edges_col[0][0]: act_dict[acts[cs_edges_col[0][0]]] }
-    for edges in cs_edges_col:
-        col = edges[1]
-        act = acts[col]
-        acts_count_dict[act] = acts_count_dict.get(act, 0) + 1
-        if acts_count_dict[act] <= 1:
-            cols_acts_dict[col] = act_dict[act]
-        else:
-            cols_acts_dict[col] = act_dict[act] + '_' + str(acts_count_dict[act])
-        cs_edges.append([cols_acts_dict[edges[0]], cols_acts_dict[col]])
-
-    # dis col to act
-    # dis_acts_count_dict = {}
-    dis_edges = []
-    if dis_edges_col:
-        if dis_edges_col[0][0] not in cols_acts_dict:
-            act = acts[dis_edges_col[0][0]]
-            acts_count_dict[act] = 1
-            cols_acts_dict[dis_edges_col[0][0]] = act_dict([act])
-
-    for edges in dis_edges_col:
-        col = edges[1]
-        if col not in cols_acts_dict:
-            act = acts[col]
-            acts_count_dict[act] = acts_count_dict.get(act, 0) + 1
-            if acts_count_dict[act] <= 1:
-                cols_acts_dict[col] = act_dict[act]
-            else:
-                cols_acts_dict[col] = act_dict[act] + '_' + str(acts_count_dict[act])
-        dis_edges.append([cols_acts_dict[edges[0]], cols_acts_dict[col]])
-    return cs_edges, dis_edges
-
+# transfer column index to activity
 def cols_to_acts(acts, act_dict, cs_edges_col, dis_edges_col, cons_col_freqs_dict, dis_col_freqs_dict):
     cols_acts_dict = {}
     acts_count_dict = {}
@@ -229,6 +148,7 @@ def cols_to_acts(acts, act_dict, cs_edges_col, dis_edges_col, cons_col_freqs_dic
         dis_edges.append([cols_acts_dict[edges[0]] + '(' + str(round(col_freqs_dict[edges[0]], 2)) + ')', cols_acts_dict[col] + '(' + str(round(col_freqs_dict[col], 2)) + ')'])
     return cs_edges, dis_edges, col_freqs_dict
 
+# construct the workflow model
 def get_graph(fmt, fname, edges1, edges2):
     g = gv.Digraph(format=fmt)
 
@@ -246,6 +166,7 @@ def get_graph(fmt, fname, edges1, edges2):
             g.edge(edge[0], edge[1])
     g.render(filename=fname)
 
+# get common-but-dispersed activities
 def get_dis_edges_and_plot(acts, cons_cols, cons_acts, cons_acts_num, cons, freq, dis_sum_threshold, act_dict, cons_edges):
     span = 30
     dis_edges_col = []
@@ -289,8 +210,8 @@ def get_dis_edges_and_plot(acts, cons_cols, cons_acts, cons_acts_num, cons, freq
                 cons_acts_to_delete.append(cons_acts[i])
     return dis_edges, cons_acts_to_delete, dis_acts_dict
 
-def main():
-    log = csv2log(filename='Synthetic_activityTraces_1000.csv',
+def model(fname, threshold, span):
+    log = csv2log(filename=fname,
               caseids_col='caseID',
               acts_col='activity',
               starts_col='startTime')
@@ -299,7 +220,6 @@ def main():
     seed = 0
     # INITIALIZATION with random sequential method
     namat = ali.pima_init(traces, ('random','shuffle',seed)) 
-    print namat
     # alternate initialization with existing edit-distance methods
     # namat = pima_init(traces, ('tree','edit','single'))
 
@@ -333,7 +253,6 @@ def main():
     acts = np.max(amat, axis=0) # activity id
     freq = np.mean(amat != 0, axis=0) # the frequency of each column
 
-    threshold = 0.5
     dis_edges_col = []
     dis_used_cols = []
     dis_sum_threshold = threshold
@@ -341,7 +260,8 @@ def main():
     
     # get the consensus cols and corresponding acts
     cons_cols, cons_acts, cons_acts_num, cons_acts_dict, cons_col_freqs_dict = get_cons_acts(cons, act_dict, freq)
-    span = len(cons_cols) - 1
+    if span == "max":
+        span = len(cons_cols) - 1
     # add cons to edges
     cs_edges_col = get_cons_edges_col(cons_cols) # edges that uses col num to represent nodes
     # add distributed acts to edges
@@ -404,6 +324,9 @@ def main():
 
     # create graph
     get_graph('pdf', 'img/workflow_' + str(threshold), cs_edges, dis_edges)
+
+def main():
+    model("Synthetic_activityTraces_1000.csv", 0.5, "max")
 
 if __name__ == '__main__':
     main()  

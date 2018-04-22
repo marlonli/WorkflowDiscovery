@@ -290,7 +290,6 @@ def pima_iter(namat, method, repo=repo, verbose=True):
             ords = sorted(ords, key=lambda x: x[1],             ### 
                           reverse=method[3][0] == 'd')          ### descending order: # of acts in col i
         buildt = time.time() - buildt
-        print(ords)
 
         # merge
         exect = time.time()
@@ -352,7 +351,6 @@ def main():
     seed = 0
     # INITIALIZATION with random sequential method
     namat = pima_init(traces, ('random','shuffle',seed)) 
-    print(namat)
     # alternate initialization with existing edit-distance methods
     # namat = pima_init(traces, ('tree','edit','single'))
 
@@ -390,8 +388,6 @@ def main():
     df_amat = pd.DataFrame(amat)
     for key in act_dict:
     	df_amat.replace(key, act_dict[key], inplace = True) 
-
-    print(df_amat)
 
     # save results
     df_amat.to_csv('alignment.csv')
