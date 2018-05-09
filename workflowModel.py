@@ -256,6 +256,15 @@ def model(fname, threshold, span):
     dis_edges_col = []
     dis_used_cols = []
     dis_sum_threshold = threshold
+    # Add start and end
+    numOfActs = len(act_dict)
+    tLen = len(acts)
+    acts = np.insert(acts, 0, numOfActs)
+    acts = np.insert(acts, tLen + 1, numOfActs + 1)
+    freq = np.insert(freq, 0, 1.0)
+    freq = np.insert(freq, tLen + 1, 1.0)
+    act_dict[numOfActs] = 'START'
+    act_dict[numOfActs + 1] = 'END'
     cons = get_consensus(acts, freq, threshold)
     
     # get the consensus cols and corresponding acts
@@ -277,10 +286,14 @@ def model(fname, threshold, span):
             sum_of_freq = 0
 
             # for each column, if act appears, add freq to sum
-            for i in range(cons_act_start, cons_act_end):
+            i = cons_act_start
+            # for i in range(cons_act_start, cons_act_end):
+            while i < cons_act_end:
                 if acts[i] == act:
+                    
                     # not in cons_cols
                     if i in cons_cols:
+                        i += 1
                         continue
 
                     # set dis_act_start
@@ -292,8 +305,6 @@ def model(fname, threshold, span):
 
                     # check if sum > threshold
                     if sum_of_freq >= dis_sum_threshold:
-                        dis_col_freqs_dict[i] = sum_of_freq
-                        sum_of_freq = 0
                         # set end
                         dis_act_end = i
                         # find last and next cons col
@@ -301,7 +312,7 @@ def model(fname, threshold, span):
                         nextcol = 0
                         idx = 0
                         for j in range(len(cons_cols) - 1):
-                            if cons_cols[j+1] > dis_act_start:
+                            if cons_cols[j + 1] > dis_act_start:
                                 lastcol = nextcol = cons_cols[j]
                                 idx = j
                                 break
@@ -309,24 +320,34 @@ def model(fname, threshold, span):
                             if cons_cols[k + 1] > dis_act_end:
                                 nextcol = cons_cols[k + 1]
                                 break
+                        i += 1
+                        while i < nextcol:
+                            if acts[i] == act:
+                                sum_of_freq += freq[i]
+                                dis_act_end = i
+                            i += 1
+                        
+                        dis_col_freqs_dict[dis_act_end] = sum_of_freq
+                        sum_of_freq = 0
 
                         # add to edges
-                        if [lastcol, i] not in dis_edges_col and i not in used_dis_col:
-                            dis_edges_col.append([lastcol, i])
-                            used_dis_col.append(i)
-                        if [i, nextcol] not in dis_edges_col:
-                            dis_edges_col.append([i, nextcol])
+                        if [lastcol, dis_act_end] not in dis_edges_col and dis_act_end not in used_dis_col:
+                            dis_edges_col.append([lastcol, dis_act_end])
+                            used_dis_col.append(dis_act_end)
+                        if [dis_act_end, nextcol] not in dis_edges_col:
+                            dis_edges_col.append([dis_act_end, nextcol])
                         # reset
                         dis_act_start = i
                         dis_act_end = i
+                i += 1
 
     cs_edges, dis_edges, col_freqs_dict = cols_to_acts(acts, act_dict, cs_edges_col, dis_edges_col, cons_col_freqs_dict, dis_col_freqs_dict)
 
     # create graph
-    get_graph('pdf', 'img/workflow_' + str(threshold), cs_edges, dis_edges)
+    get_graph('pdf', 'img/TraumaIntub_' + str(threshold) + '_' + str(span), cs_edges, dis_edges)
 
 def main():
-    model("Synthetic_activityTraces_1000.csv", 0.5, "max")
+    model("TraumaIntubationCoding.csv", 0.5, "max")
 
 if __name__ == '__main__':
     main()  
