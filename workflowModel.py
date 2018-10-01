@@ -308,20 +308,21 @@ def model(fname, threshold, span):
                         # set end
                         dis_act_end = i
                         # find previous and next cons col
-                        prev_col = 0
-                        next_col = 0
+                        prev_cons_col = 0
+                        next_cons_col = 0
                         idx = 0
                         for j in range(len(cons_cols) - 1):
                             if cons_cols[j + 1] > dis_act_start:
-                                prev_col = next_col = cons_cols[j]
+                                prev_cons_col = next_cons_col = cons_cols[j]
                                 idx = j
                                 break
                         for k in range(idx, len(cons_cols) - 1):
                             if cons_cols[k + 1] > dis_act_end:
-                                next_col = cons_cols[k + 1]
+                                next_cons_col = cons_cols[k + 1]
                                 break
                         i += 1
-                        while i < next_col:
+                        # add the remaining dis act between dis_act_end and the next cons col
+                        while i < next_cons_col:
                             if acts[i] == act:
                                 sum_of_freq += freq[i]
                                 dis_act_end = i
@@ -330,12 +331,12 @@ def model(fname, threshold, span):
                         dis_col_freqs_dict[dis_act_end] = sum_of_freq
                         sum_of_freq = 0
 
-                        # add to edges
-                        if [prev_col, dis_act_end] not in dis_edges_col and dis_act_end not in used_dis_col:
-                            dis_edges_col.append([prev_col, dis_act_end])
+                        # add [c1 -> d], [d -> c2] to the list of dis_edges
+                        if [prev_cons_col, dis_act_end] not in dis_edges_col and dis_act_end not in used_dis_col:
+                            dis_edges_col.append([prev_cons_col, dis_act_end])
                             used_dis_col.append(dis_act_end)
-                        if [dis_act_end, next_col] not in dis_edges_col:
-                            dis_edges_col.append([dis_act_end, next_col])
+                        if [dis_act_end, next_cons_col] not in dis_edges_col:
+                            dis_edges_col.append([dis_act_end, next_cons_col])
                         # reset
                         dis_act_start = i
                         dis_act_end = i
